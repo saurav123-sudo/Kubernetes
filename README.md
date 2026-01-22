@@ -1,97 +1,115 @@
-## Kubernetes Kickstarter
+# KIND Cluster Setup Guide
 
-### Kubernetes In One Shot
+## 1. Installing KIND and kubectl
+Install KIND and kubectl using the provided [script](https://github.com/LondheShubham153/kubestarter/blob/main/kind-cluster/install.sh):
 
-Learn Kubernetes concepts in a 12 hour tutorial by TrainWithShubham [here](https://youtu.be/W04brGNgxN4?si=KuUs-ajJOE7TfYs-)
+## 2. Setting Up the KIND Cluster
+Create a kind-config.yaml file:
 
-## Architecture Guides
+```yaml
 
-1. [Kubernetes Architecture Guide](./kubernetes_architecture.md)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.33.1
+  - role: worker
+    image: kindest/node:v1.33.1
+  - role: worker
+    image: kindest/node:v1.33.1
+```
+Create the cluster using the configuration file:
 
-## Examples with Interview Questions
+```bash
 
-1. [NGINX with Deployment & Service](./examples/nginx)
-2. [MySQL with ConfigMaps, Secrets & Persistent Volumes](./examples/mysql)
+kind create cluster --config kind-config.yaml --name tws-kind-cluster
+```
+Verify the cluster:
 
-## Installation Guides
+```bash
 
-1. [Kubeadm Installation Scripts](./Kubeadm_Installation_Scripts_and_Documentation/)
-2. [Minikube Installation Guide](./minikube_installation.md)
-3. [EKS Installation Guide](./eks_cluster_setup.md)
+kubectl get nodes
+kubectl cluster-info
+```
+## 3. Accessing the Cluster
+Use kubectl to interact with the cluster:
+```bash
 
-## Kubernetes Concepts Covered in this Repository:
+kubectl cluster-info
+```
 
-### Core Kubernetes Components & Architecture
-1. [Kubernetes Architecture](./kubernetes_architecture.md) - Control Plane, Worker Nodes, etcd, API Server, Scheduler, Controller Manager
-2. **Pods** - [NGINX Example](./examples/nginx/pod.yml) - Smallest deployable units in Kubernetes
-3. **Services** - [NGINX Example](./examples/nginx/service.yml) - Network abstraction for accessing Pods
-4. **Deployments** - [NGINX Example](./examples/nginx/deployment.yml) - Declarative updates and lifecycle management for Pods
-5. **Namespaces** - Virtual clusters for resource isolation and organization
 
-### Workload Controllers
-6. **DaemonSet** - [Examples](./DaemonSet/) - Ensures pods run on all/selected nodes
+## 4. Setting Up the Kubernetes Dashboard
+Deploy the Dashboard
+Apply the Kubernetes Dashboard manifest:
+```bash
 
-### Configuration & Secrets Management
-7. **ConfigMaps** - [MySQL Example](./examples/mysql/configMap.yml) - Non-confidential configuration data
-8. **Secrets** - [MySQL Example](./examples/mysql/secrets.yml) - Sensitive information like passwords
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+```
+Create an Admin User
+Create a dashboard-admin-user.yml file with the following content:
 
-### Storage & Persistence
-9. **Persistent Volumes (PV)** - [Examples](./PersistentVolumes/) - Cluster-wide storage resources
-10. **Persistent Volume Claims (PVC)** - [Examples](./PersistentVolumes/) - Storage requests by users
-11. **Volume Mounts** - [MySQL Example](./examples/mysql/persistentVols.yml) - Attaching storage to containers
+```yaml
 
-### Networking & Traffic Management
-12. **Ingress** - [Examples](./Ingress/) - HTTP/HTTPS traffic routing and load balancing
-13. **Ingress Controllers** - [Setup Guide](./Ingress/README.md) - Implementation of Ingress rules
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kubernetes-dashboard
+```
+Apply the configuration:
 
-### Auto-scaling & Resource Management
-14. **Horizontal Pod Autoscaler (HPA)** - [Examples](./HPA_VPA/) - Automatic scaling based on CPU/memory
-15. **Vertical Pod Autoscaler (VPA)** - [Examples](./HPA_VPA/) - Automatic resource adjustment
-16. **Resource Requests & Limits** - [HPA Example](./HPA_VPA/apache-deployment.yml) - CPU and memory constraints
+```bash
 
-### Security & Access Control
-17. **Role-Based Access Control (RBAC)** - [Examples](./RBAC/) - Fine-grained permissions
-18. **Roles & RoleBindings** - [Examples](./RBAC/) - Namespace-scoped permissions
-19. **Service Accounts** - [Examples](./RBAC/) - Identity for pods and processes
+kubectl apply -f dashboard-admin-user.yml
+```
+Get the Access Token
+Retrieve the token for the admin-user:
 
-### Node Management & Scheduling
-20. **Taints and Tolerations** - [Examples](./Taints-and-Tolerations/) - Node scheduling constraints
+```bash
 
-### Package Management & Templating
-21. **Helm Charts** - [Examples](./HELM/) - Kubernetes package manager
-22. **Helm Templates** - [Apache Chart](./HELM/apache/) - Parameterized Kubernetes manifests
-23. **Helm Values** - [Apache Chart](./HELM/apache/values.yaml) - Configuration management for charts
+kubectl -n kubernetes-dashboard create token admin-user
+```
+Copy the token for use in the Dashboard login.
 
-### Deployment Strategies
-24. **Rolling Updates** - [Examples](./Deployment_Strategies/Rolling-Update-Deployment/) - Gradual application updates
-25. **Recreate Deployment** - [Examples](./Deployment_Strategies/Recreate-deployment/) - Stop-and-start deployment
-26. **Blue-Green Deployment** - [Examples](./Deployment_Strategies/Blue-green-deployment/) - Zero-downtime deployments
-27. **Canary Deployment** - [Examples](./Deployment_Strategies/Canary-deployment/) - Gradual traffic shifting
-28. **Simple Canary Example** - [Examples](./Deployment_Strategies/Simple-Canary-Example/) - Basic canary deployment pattern
+Access the Dashboard
+Start the Dashboard using kubectl proxy:
 
-### CI/CD Integration
-29. **CI/CD with Kubernetes** - [Guide](./ci_cd_with_kubernetes.md) - Continuous integration and deployment
+```bash
 
-### Cluster Setup & Management
-30. **Kubeadm Installation** - [Scripts & Docs](./Kubeadm_Installation_Scripts_and_Documentation/) - Production cluster setup
-31. **Minikube Setup** - [Installation Guide](./minikube_installation.md) - Local development clusters
-32. **KIND Clusters** - [Setup Guide](./kind-cluster/) - Kubernetes in Docker for testing
-33. **EKS Cluster Setup** - [AWS Guide](./eks_cluster_setup.md) - Managed Kubernetes on AWS
+kubectl proxy
+```
+Open the Dashboard in your browser:
 
-### Monitoring & Observability
-34. **Kubernetes Dashboard** - [KIND Setup](./kind-cluster/) - Web-based cluster management
-35. **Metrics Server** - [HPA Setup](./HPA_VPA/README.md) - Resource usage monitoring
+```bash
 
-### Real-World Applications
-36. **Multi-tier Applications** - [NGINX Example](./examples/nginx/), [MySQL Example](./examples/mysql/)
-37. **Microservices Architecture** - [Practice Projects](./examples/More_K8s_Practice_Ideas.md)
-38. **Database Deployments** - [MySQL with Persistence](./examples/mysql/) - Stateful application patterns
-39. **Web Application Hosting** - [NGINX Deployment](./examples/nginx/) - Complete application stacks
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+```
+Use the token from the previous step to log in.
 
-## Practice Projects
+## 5. Deleting the Cluster
+Delete the KIND cluster:
+```bash
 
-1. [Microservices on k8s](https://github.com/LondheShubham153/microservices-k8s)
-2. [Django App Deployment](https://github.com/LondheShubham153/django-todo-cicd)
-3. [Redit Clone with Ingress](https://github.com/LondheShubham153/reddit-clone-k8s-ingress)
-4. [AWS EKS Best Practices](https://github.com/LondheShubham153/aws-eks-devops-best-practices)
-5. [For More Challenges, Check Out These Ideas](./examples/More_K8s_Practice_Ideas.md)
+kind delete cluster --name my-kind-cluster
+```
+
+## 6. Notes
+
+Multiple Clusters: KIND supports multiple clusters. Use unique --name for each cluster.
+Custom Node Images: Specify Kubernetes versions by updating the image in the configuration file.
+Ephemeral Clusters: KIND clusters are temporary and will be lost if Docker is restarted.
+
